@@ -77,32 +77,35 @@ class SecurityDomainTrustManager extends X509ExtendedTrustManager {
         Assert.checkNotNullParam("chain", chain);
         Assert.checkNotNullParam("authType", authType);
         if (chain.length == 0) {
-            throw ElytronMessages.log.emptyChainNotTrusted();
+            throw ElytronMessages.tls.emptyChainNotTrusted();
         }
         final X509PeerCertificateChainEvidence evidence = new X509PeerCertificateChainEvidence(chain);
         Principal principal = evidence.getPrincipal();
         final ServerAuthenticationContext authenticationContext = securityDomain.createNewAuthenticationContext();
         boolean ok = false;
+        ElytronMessages.tls.tracef("Client trust check for '%s'...", principal);
         try {
             final SupportLevel evidenceSupport = authenticationContext.getEvidenceVerifySupport(X509PeerCertificateChainEvidence.class, evidence.getAlgorithm());
             if (evidenceSupport.mayBeSupported() && authenticationContext.verifyEvidence(evidence) && authenticationContext.authorize()) {
+                ElytronMessages.tls.tracef("Authentication succeed for '%s'.", principal);
                 authenticationContext.succeed();
                 if (handshakeSession != null) {
                     handshakeSession.putValue(SSLUtils.SSL_SESSION_IDENTITY_KEY, authenticationContext.getAuthorizedIdentity());
                 }
+                ElytronMessages.tls.tracef("Authentication finished for '%s'.", principal);
                 ok = true;
                 return;
             }
             if (authenticationOptional) {
-                ElytronMessages.log.tracef("Authentication failed for '%s', ignoring as authentication optional.", principal);
+                ElytronMessages.tls.tracef("Authentication failed for '%s', ignoring as authentication optional.", principal);
             } else {
-                throw ElytronMessages.log.notTrusted(principal);
+                throw ElytronMessages.tls.notTrusted(principal);
             }
         } catch (RealmUnavailableException e) {
             if (authenticationOptional) {
-                ElytronMessages.log.tracef("Authentication failed for '%s' as the realm is unavailable,", principal);
+                ElytronMessages.tls.tracev(e, "Authentication failed for '%s' as the realm is unavailable.", principal);
             } else {
-                throw ElytronMessages.log.notTrustedRealmProblem(e, principal);
+                throw ElytronMessages.tls.notTrustedRealmProblem(e, principal);
             }
         } finally {
             if (! ok) {

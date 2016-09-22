@@ -33,6 +33,7 @@ import org.wildfly.common.Assert;
 import org.wildfly.security.FixedSecurityFactory;
 import org.wildfly.security.OneTimeSecurityFactory;
 import org.wildfly.security.SecurityFactory;
+import org.wildfly.security._private.ElytronMessages;
 import org.wildfly.security.auth.server.SecurityDomain;
 import org.wildfly.security.auth.server.PrincipalDecoder;
 import org.wildfly.security.evidence.X509PeerCertificateChainEvidence;
@@ -278,6 +279,15 @@ public final class SSLContextBuilder {
                     new SecurityDomainTrustManager(x509TrustManager, securityDomain, authenticationOptional) :
                     x509TrustManager
             }, null);
+
+            ElytronMessages.tls.trace("clientMode = " + clientMode);
+            ElytronMessages.tls.trace("wantClientAuth = " + wantClientAuth);
+            ElytronMessages.tls.trace("needClientAuth = " + needClientAuth);
+            ElytronMessages.tls.trace("canAuthPeers = " + canAuthPeers);
+            ElytronMessages.tls.trace("authenticationOptional = " + authenticationOptional);
+            ElytronMessages.tls.trace("securityDomain = " + securityDomain);
+            ElytronMessages.tls.trace("x509TrustManager = " + x509TrustManager);
+
             // now, set up the wrapping configuration
             final SSLConfigurator sslConfigurator = clientMode ? new SSLConfiguratorImpl(protocolSelector, cipherSuiteSelector) : new SSLConfiguratorImpl(protocolSelector, cipherSuiteSelector, wantClientAuth || canAuthPeers, needClientAuth);
             final ConfiguredSSLContextSpi contextSpi = new ConfiguredSSLContextSpi(sslContext, sslConfigurator);
