@@ -280,6 +280,15 @@ class LdapSecurityRealm implements ModifiableSecurityRealm {
         }
 
         public Principal getRealmIdentityPrincipal() {
+            if (identityMapping.principalAttribute != null) {
+                org.wildfly.security.authz.Attributes.Entry entries = identity.attributes.get(identityMapping.principalAttribute);
+                if (entries.size() != 0) {
+                    String principal = entries.get(0);
+                    log.tracef("Using principal [%s] for user [%s]", principal, name);
+                    return new NamePrincipal(principal);
+                }
+            }
+            log.tracef("Using principal derived from username for user [%s]", name);
             return new NamePrincipal(name);
         }
 
@@ -1040,8 +1049,9 @@ class LdapSecurityRealm implements ModifiableSecurityRealm {
         private final Attributes newIdentityAttributes;
         private final String filterName;
         private final String iteratorFilter;
+        private final String principalAttribute;
 
-        public IdentityMapping(String searchDn, boolean searchRecursive, int searchTimeLimit, String rdnIdentifier, List<AttributeMapping> attributes, LdapName newIdentityParent, Attributes newIdentityAttributes, String filterName, String iteratorFilter) {
+        public IdentityMapping(String searchDn, boolean searchRecursive, int searchTimeLimit, String rdnIdentifier, List<AttributeMapping> attributes, LdapName newIdentityParent, Attributes newIdentityAttributes, String filterName, String iteratorFilter, String principalAttribute) {
             Assert.checkNotNullParam("rdnIdentifier", rdnIdentifier);
             this.searchDn = searchDn;
             this.searchRecursive = searchRecursive;
@@ -1052,6 +1062,7 @@ class LdapSecurityRealm implements ModifiableSecurityRealm {
             this.newIdentityAttributes = newIdentityAttributes;
             this.filterName = filterName;
             this.iteratorFilter = iteratorFilter;
+            this.principalAttribute = principalAttribute;
         }
     }
 }

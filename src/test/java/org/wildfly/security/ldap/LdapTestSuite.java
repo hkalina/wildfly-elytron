@@ -26,16 +26,16 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        TestEnvironmentSuiteChild.class,
+        //TestEnvironmentSuiteChild.class,
         AttributeMappingSuiteChild.class,
-        GroupMappingSuiteChild.class,
-        ModifiabilitySuiteChild.class,
-        PasswordSupportSuiteChild.class,
-        DirectEvidenceVerificationSuiteChild.class,
-        X509EvidenceVerificationSuiteChild.class,
-        PrincipalMappingSuiteChild.class,
-        RoleMappingSuiteChild.class,
-        KeyStoreSuiteChild.class
+        //GroupMappingSuiteChild.class,
+        //ModifiabilitySuiteChild.class,
+        //PasswordSupportSuiteChild.class,
+        //DirectEvidenceVerificationSuiteChild.class,
+        //X509EvidenceVerificationSuiteChild.class,
+        //PrincipalMappingSuiteChild.class,
+        //RoleMappingSuiteChild.class,
+        //KeyStoreSuiteChild.class
 })
 public class LdapTestSuite {
     @ClassRule

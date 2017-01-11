@@ -19,9 +19,14 @@
 package org.wildfly.security.ldap;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.wildfly.security.auth.principal.NamePrincipal;
 import org.wildfly.security.auth.realm.ldap.AttributeMapping;
+import org.wildfly.security.auth.realm.ldap.LdapSecurityRealmBuilder;
+import org.wildfly.security.auth.server.RealmIdentity;
+import org.wildfly.security.auth.server.SecurityRealm;
 
 /**
  * @author <a href="mailto:psilva@redhat.com">Pedro Igor</a>
@@ -94,5 +99,21 @@ public class AttributeMappingSuiteChild extends AbstractAttributeMappingSuiteChi
             assertEquals("Expected a single attribute.", 1, attributes.size());
             assertAttributeValue(attributes.get("roles"), "R1", "R2");
         }, AttributeMapping.fromFilter("(&(objectClass=groupOfNames)(member={1}))").from("cn").roleRecursion(1).to("roles").build());
+    }
+
+    @Test
+    public void testIdentityPrincipal() throws Exception {
+        SecurityRealm realm = LdapSecurityRealmBuilder.builder()
+                .setDirContextSupplier(LdapTestSuite.dirContextFactory.create())
+                .identityMapping()
+                    .setSearchDn("dc=elytron,dc=wildfly,dc=org")
+                    .setRdnIdentifier("uid")
+                    .map(AttributeMapping.fromIdentity().from("sn").to("principal").build())
+                    .setPrincipalAttribute("principal")
+                    .build()
+                .build();
+        RealmIdentity identity = realm.getRealmIdentity(new NamePrincipal("jduke"));
+        assertTrue(identity.exists());
+        assertEquals(new NamePrincipal("Duke"), identity.getRealmIdentityPrincipal());
     }
 }

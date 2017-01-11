@@ -231,6 +231,7 @@ public class LdapSecurityRealmBuilder {
         private Attributes newIdentityAttributes = null;
         private String filterName;
         private String iteratorFilter;
+        private String principalAttribute;
 
         /**
          * <p>Set the name of the context to be used when executing queries.
@@ -320,6 +321,19 @@ public class LdapSecurityRealmBuilder {
         }
 
         /**
+         * Set identity attribute name, which will be used as user principal.
+         * If not defined, username used for identity search will be used.
+         * @param principalAttribute identity attribute name
+         * @return
+         */
+        public IdentityMappingBuilder setPrincipalAttribute(String principalAttribute) {
+            assertNotBuilt();
+
+            this.principalAttribute = principalAttribute;
+            return this;
+        }
+
+        /**
          * Define an attribute mapping configuration.
          *
          * @param attributes one or more {@link AttributeMapping} configuration
@@ -340,7 +354,7 @@ public class LdapSecurityRealmBuilder {
 
             return LdapSecurityRealmBuilder.this.setIdentityMapping(new IdentityMapping(
                     searchDn, searchRecursive, searchTimeLimit, nameAttribute, attributes,
-                    newIdentityParent, newIdentityAttributes, filterName, iteratorFilter));
+                    newIdentityParent, newIdentityAttributes, filterName, iteratorFilter, principalAttribute));
         }
 
         private void assertNotBuilt() {

@@ -66,8 +66,10 @@ public abstract class AbstractAttributeMappingSuiteChild {
                                         .searchRecursive()
                                         .setRdnIdentifier("uid")
                                         .map(expectedAttributes)
+                                        .setPrincipalAttribute("principal")
                                         .build()
-                                        .build()).build();
+                                .build()
+                ).build();
 
         builder.setPermissionMapper((permissionMappable, roles) -> PermissionVerifier.from(new LoginPermission()));
 
