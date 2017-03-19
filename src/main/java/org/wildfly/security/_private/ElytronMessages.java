@@ -45,7 +45,6 @@ import javax.naming.NamingException;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLProtocolException;
-import javax.security.auth.callback.Callback;
 import javax.security.auth.login.LoginException;
 import javax.security.jacc.PolicyContextException;
 import javax.xml.namespace.QName;
@@ -64,7 +63,6 @@ import org.wildfly.client.config.ConfigXMLParseException;
 import org.wildfly.client.config.ConfigurationXMLStreamReader;
 import org.wildfly.security.asn1.ASN1Exception;
 import org.wildfly.security.audit.EventPriority;
-import org.wildfly.security.auth.callback.FastUnsupportedCallbackException;
 import org.wildfly.security.auth.permission.RunAsPrincipalPermission;
 import org.wildfly.security.auth.realm.CacheableSecurityRealm;
 import org.wildfly.security.auth.server.RealmUnavailableException;
@@ -167,9 +165,6 @@ public interface ElytronMessages extends BasicLogger {
 
     @Message(id = 1009, value = "Failed to instantiate custom CallbackHandler")
     RealmUnavailableException failedToInstantiateCustomHandler(@Cause Throwable cause);
-
-    @Message(id = 1010, value = "Credential cannot be converted to a password")
-    FastUnsupportedCallbackException failedToConvertCredentialToPassword(@Param Callback callback);
 
     @Message(id = 1011, value = "Unrecognized principal type for %s")
     IllegalArgumentException unrecognizedPrincipalType(Principal principal);
@@ -427,8 +422,8 @@ public interface ElytronMessages extends BasicLogger {
     @Message(id = 1091, value = "Post-association peer context action failed")
     void postAssociationFailed(@Cause Throwable cause);
 
-    @Message(id = 1092, value = "Invalid mechanism realm selection \"%s\"")
-    IllegalArgumentException invalidMechRealmSelection(String realmName);
+    @Message(id = 1092, value = "Invalid mechanism realm selection \"%s\", available realms: %s")
+    IllegalArgumentException invalidMechRealmSelection(String realmName, String availableRealms);
 
     @Message(id = 1093, value = "Mechanism realm was already selected")
     IllegalStateException mechRealmAlreadySelected();
@@ -1460,6 +1455,12 @@ public interface ElytronMessages extends BasicLogger {
 
     @Message(id = 6014, value = "Authentication mechanism '%s' cannot be found")
     HttpAuthenticationException httpServerAuthenticationMechanismNotFound(String mechanismName);
+
+    @Message(id = 6015, value = "Unable to authenticate using DIGEST mechanism - realm name needs to be specified")
+    IllegalStateException digestMechanismRequireRealm();
+
+    @Message(id = 6016, value = "Unable to initialize DIGEST mechanism - available realms not specified")
+    HttpAuthenticationException availableRealmsNotSpecified();
 
     /* asn1 package */
 

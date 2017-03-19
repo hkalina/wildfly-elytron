@@ -26,6 +26,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
@@ -74,8 +75,10 @@ import org.wildfly.security.credential.Credential;
 import org.wildfly.security.credential.PasswordCredential;
 import org.wildfly.security.credential.source.CredentialSource;
 import org.wildfly.security.evidence.Evidence;
+import org.wildfly.security.password.Password;
 import org.wildfly.security.password.PasswordFactory;
 import org.wildfly.security.password.TwoWayPassword;
+import org.wildfly.security.password.interfaces.DigestPassword;
 import org.wildfly.security.password.spec.ClearPasswordSpec;
 
 /**
@@ -818,8 +821,21 @@ public final class ServerAuthenticationContext {
                 } else if (callback instanceof CredentialCallback) {
                     final CredentialCallback credentialCallback = (CredentialCallback) callback;
 
+                    String requestedRealm = stateRef.get().getMechanismRealmConfiguration().getRealmName();
+                    log.tracef("Handling CredentialCallback: requesting realm %s", requestedRealm);
+
                     final Credential credential = getCredential(credentialCallback.getCredentialType(), credentialCallback.getAlgorithm());
                     if (credential != null) {
+                        if (credential instanceof PasswordCredential) {
+                            Password password = ((PasswordCredential) credential).getPassword();
+                            if (password != null && password instanceof DigestPassword) {
+                                String providedRealm = ((DigestPassword)password).getRealm();
+                                if( ! providedRealm.equals(requestedRealm)) {
+                                    log.tracef("Handling CredentialCallback: credential for realm \"%s\" is not available (\"%s\" provided)", requestedRealm, providedRealm);
+                                    throw new FastUnsupportedCallbackException(callback);
+                                }
+                            }
+                        }
                         log.tracef("Handling CredentialCallback: obtained successfully");
                         credentialCallback.setCredential(credential);
                         handleOne(callbacks, idx + 1);
@@ -1313,13 +1329,14 @@ public final class ServerAuthenticationContext {
         void setMechanismRealmName(final String realmName) {
             final MechanismRealmConfiguration currentConfiguration = getMechanismRealmConfiguration();
             final MechanismConfiguration mechanismConfiguration = getMechanismConfiguration();
-            if (mechanismConfiguration.getMechanismRealmNames().isEmpty()) {
+            Collection<String> availableRealms = mechanismConfiguration.getMechanismRealmNames();
+            if (availableRealms.isEmpty()) {
                 // no realms are configured
-                throw log.invalidMechRealmSelection(realmName);
+                throw log.invalidMechRealmSelection(realmName, Arrays.toString(availableRealms.toArray()));
             }
             final MechanismRealmConfiguration configuration = mechanismConfiguration.getMechanismRealmConfiguration(realmName);
             if (configuration == null) {
-                throw log.invalidMechRealmSelection(realmName);
+                throw log.invalidMechRealmSelection(realmName, Arrays.toString(availableRealms.toArray()));
             }
             if (currentConfiguration != configuration) {
                 throw log.mechRealmAlreadySelected();
@@ -1555,13 +1572,14 @@ public final class ServerAuthenticationContext {
         @Override
         void setMechanismRealmName(final String realmName) {
             final MechanismConfiguration mechanismConfiguration = getMechanismConfiguration();
-            if (mechanismConfiguration.getMechanismRealmNames().isEmpty()) {
+            Collection<String> availableRealms = mechanismConfiguration.getMechanismRealmNames();
+            if (availableRealms.isEmpty()) {
                 // no realms are configured
-                throw log.invalidMechRealmSelection(realmName);
+                throw log.invalidMechRealmSelection(realmName, Arrays.toString(availableRealms.toArray()));
             }
             final MechanismRealmConfiguration configuration = mechanismConfiguration.getMechanismRealmConfiguration(realmName);
             if (configuration == null) {
-                throw log.invalidMechRealmSelection(realmName);
+                throw log.invalidMechRealmSelection(realmName, Arrays.toString(availableRealms.toArray()));
             }
             final AtomicReference<State> stateRef = getStateRef();
             if (! stateRef.compareAndSet(this, new RealmAssignedState(capturedIdentity, mechanismConfiguration, configuration, privateCredentials, publicCredentials))) {
