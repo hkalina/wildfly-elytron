@@ -20,6 +20,7 @@ package org.wildfly.security.sasl.gs2;
 
 import static org.wildfly.security.sasl.gs2.Gs2.*;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
 
 import org.ietf.jgss.ChannelBinding;
@@ -103,13 +104,17 @@ class Gs2Util {
      * @param bindingData the channel binding data
      * @return the {@code ChannelBinding}
      */
-    public static ChannelBinding createChannelBinding(ByteStringBuilder header, boolean gs2CbFlagPUsed, byte[] bindingData) {
+    public static ChannelBinding createChannelBinding(ByteStringBuilder header, boolean gs2CbFlagPUsed, byte[] bindingData, InetAddress initiatorAddress, InetAddress acceptorAddress) {
         byte[] appData;
         if (gs2CbFlagPUsed) {
             appData = (header.append(bindingData)).toArray();
         } else {
             appData = header.toArray();
         }
-        return new ChannelBinding(appData);
+        if (initiatorAddress != null || acceptorAddress != null) {
+            return new ChannelBinding(initiatorAddress, acceptorAddress, appData);
+        } else {
+            return new ChannelBinding(appData);
+        }
     }
 }

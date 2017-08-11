@@ -156,5 +156,13 @@ public final class WildFlySasl {
      */
     public static final String AUTHENTICATION_TIMEOUT = "wildfly.sasl.authentication-timeout";
 
+    /**
+     * Initiator (client) address of the GS2 SASL authenticated connection. Used for channel binding.
+     */
+    public static final String GS2_INITIATOR_ADDRESS = "org.wildfly.security.sasl.gs2.client.address";
 
+    /**
+     * Acceptor (server) address of the GS2 SASL authenticated connection. Used for channel binding.
+     */
+    public static final String GS2_ACCEPTOR_ADDRESS = "org.wildfly.security.sasl.gs2.server.address";
 }

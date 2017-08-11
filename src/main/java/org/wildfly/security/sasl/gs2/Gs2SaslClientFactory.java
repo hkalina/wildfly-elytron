@@ -22,6 +22,7 @@ import static org.wildfly.security._private.ElytronMessages.log;
 import static org.wildfly.security.sasl.gs2.Gs2.*;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.Collections;
 import java.util.Map;
 
@@ -85,6 +86,8 @@ public final class Gs2SaslClientFactory implements SaslClientFactory {
         boolean bindingOk = false;
         boolean bindingRequired = "true".equals(props.get(WildFlySasl.CHANNEL_BINDING_REQUIRED));
         boolean bindingStatusDetermined = false;
+        InetAddress initiatorAddress = (InetAddress) props.get(WildFlySasl.GS2_INITIATOR_ADDRESS);
+        InetAddress acceptorAddress = (InetAddress) props.get(WildFlySasl.GS2_ACCEPTOR_ADDRESS);
         for (String mechanism : mechanisms) {
             if (! Gs2Util.isIncluded(mechanism, supportedMechanisms)) continue;
             if (! bindingStatusDetermined) {
@@ -113,7 +116,7 @@ public final class Gs2SaslClientFactory implements SaslClientFactory {
         }
         if (name == null) return null;
 
-        final Gs2SaslClient client = new Gs2SaslClient(name, protocol, serverName, cbh, authorizationId, props, gssManager, plus, bindingType, bindingData);
+        final Gs2SaslClient client = new Gs2SaslClient(name, protocol, serverName, cbh, authorizationId, props, gssManager, plus, bindingType, bindingData, initiatorAddress, acceptorAddress);
         client.init();
         return client;
     }

@@ -22,6 +22,7 @@ import static org.wildfly.security._private.ElytronMessages.log;
 import static org.wildfly.security.asn1.ASN1.APPLICATION_SPECIFIC_MASK;
 import static org.wildfly.security.sasl.gs2.Gs2Util.TOKEN_HEADER_TAG;
 
+import java.net.InetAddress;
 import java.util.Map;
 
 import javax.security.auth.callback.CallbackHandler;
@@ -64,7 +65,8 @@ final class Gs2SaslClient extends AbstractSaslClient {
     private ByteStringBuilder gs2HeaderExcludingNonStdFlag;
 
     Gs2SaslClient(final String mechanismName, final String protocol, final String serverName, final CallbackHandler callbackHandler, final String authorizationId,
-            final Map<String, ?> props, final GSSManager gssManager, final boolean plus, final String bindingType, final byte[] bindingData) throws SaslException {
+                  final Map<String, ?> props, final GSSManager gssManager, final boolean plus, final String bindingType, final byte[] bindingData,
+                  InetAddress initiatorAddress, InetAddress acceptorAddress) throws SaslException {
         super(mechanismName, protocol, serverName, callbackHandler, authorizationId, true);
         this.bindingType = bindingType;
         this.plus = plus;
@@ -116,7 +118,7 @@ final class Gs2SaslClient extends AbstractSaslClient {
         gs2HeaderExcludingNonStdFlag = createGs2HeaderExcludingNonStdFlag();
         try {
             boolean gs2CbFlagPUsed = ((bindingData != null) && plus);
-            ChannelBinding channelBinding = Gs2Util.createChannelBinding(gs2HeaderExcludingNonStdFlag, gs2CbFlagPUsed, bindingData);
+            ChannelBinding channelBinding = Gs2Util.createChannelBinding(gs2HeaderExcludingNonStdFlag, gs2CbFlagPUsed, bindingData, initiatorAddress, acceptorAddress);
             gssContext.setChannelBinding(channelBinding);
         } catch (GSSException e) {
             throw log.mechUnableToSetChannelBinding(getMechanismName(), e).toSaslException();

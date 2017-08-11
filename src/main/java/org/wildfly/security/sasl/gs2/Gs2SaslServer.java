@@ -22,6 +22,7 @@ import static org.wildfly.security._private.ElytronMessages.log;
 import static org.wildfly.security.asn1.ASN1.APPLICATION_SPECIFIC_MASK;
 
 import java.io.IOException;
+import java.net.InetAddress;
 
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -66,12 +67,18 @@ final class Gs2SaslServer extends AbstractSaslServer {
     private GSSContext gssContext;
     private String authorizationID;
 
+    private final InetAddress initiatorAddress;
+    private final InetAddress acceptorAddress;
+
     Gs2SaslServer(final String mechanismName, final String protocol, final String serverName, final CallbackHandler callbackHandler,
-            final GSSManager gssManager, final boolean plus, final String bindingType, final byte[] bindingData) throws SaslException {
+            final GSSManager gssManager, final boolean plus, final String bindingType, final byte[] bindingData,
+                  InetAddress initiatorAddress, InetAddress acceptorAddress) throws SaslException {
         super(mechanismName, protocol, serverName, callbackHandler);
         this.plus = plus;
         this.bindingType = bindingType;
         this.bindingData = bindingData;
+        this.initiatorAddress = initiatorAddress;
+        this.acceptorAddress = acceptorAddress;
 
         try {
             mechanism = Gs2.getMechanismForSaslName(gssManager, mechanismName);
@@ -202,7 +209,7 @@ final class Gs2SaslServer extends AbstractSaslServer {
                 ByteStringBuilder gs2HeaderExcludingNonStdFlag = new ByteStringBuilder();
                 gs2HeaderExcludingNonStdFlag.append(message, gs2HeaderStartIndex, gs2HeaderLength);
                 try {
-                    ChannelBinding channelBinding = Gs2Util.createChannelBinding(gs2HeaderExcludingNonStdFlag, gs2CbFlagPUsed, bindingData);
+                    ChannelBinding channelBinding = Gs2Util.createChannelBinding(gs2HeaderExcludingNonStdFlag, gs2CbFlagPUsed, bindingData, initiatorAddress, acceptorAddress);
                     gssContext.setChannelBinding(channelBinding);
                 } catch (GSSException e) {
                     throw log.mechUnableToSetChannelBinding(getMechanismName(), e).toSaslException();
