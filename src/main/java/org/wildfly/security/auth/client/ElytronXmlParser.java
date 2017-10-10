@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.net.Authenticator;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.GeneralSecurityException;
@@ -69,6 +70,7 @@ import javax.net.ssl.X509TrustManager;
 
 import org.ietf.jgss.GSSException;
 import org.ietf.jgss.Oid;
+import org.projectodd.vdx.core.ErrorPrinter;
 import org.wildfly.client.config.ClientConfiguration;
 import org.wildfly.client.config.ConfigXMLParseException;
 import org.wildfly.client.config.ConfigurationXMLStreamReader;
@@ -218,25 +220,43 @@ public final class ElytronXmlParser {
      * @throws ConfigXMLParseException if the resource failed to be parsed
      */
     static SecurityFactory<AuthenticationContext> parseAuthenticationClientConfiguration(ConfigurationXMLStreamReader reader) throws ConfigXMLParseException {
-        if (reader.hasNext()) {
-            switch (reader.nextTag()) {
-                case START_ELEMENT: {
-                    Version xmlVersion = KNOWN_NAMESPACES.get(checkGetElementNamespace(reader));
-                    switch (reader.getLocalName()) {
-                        case "authentication-client": {
-                            return parseAuthenticationClientType(reader, xmlVersion);
-                        }
-                        default: {
-                            throw reader.unexpectedElement();
+        try {
+            if (reader.hasNext()) {
+                switch (reader.nextTag()) {
+                    case START_ELEMENT: {
+                        Version xmlVersion = KNOWN_NAMESPACES.get(checkGetElementNamespace(reader));
+                        switch (reader.getLocalName()) {
+                            case "authentication-client": {
+                                return parseAuthenticationClientType(reader, xmlVersion);
+                            }
+                            default: {
+                                throw reader.unexpectedElement();
+                            }
                         }
                     }
-                }
-                default: {
-                    throw reader.unexpectedContent();
+                    default: {
+                        throw reader.unexpectedContent();
+                    }
                 }
             }
+            return AuthenticationContext::empty;
+        } catch (ConfigXMLParseException e) {
+            if (e.getValidationError() != null) {
+                try {
+                    List<URL> schemes = new LinkedList<>();
+                    schemes.add(ElytronXmlParser.class.getResource("schema/elytron-1_0.xsd"));
+                    schemes.add(ElytronXmlParser.class.getResource("schema/elytron-client-1_1.xsd"));
+
+                    new XMLLocation(reader.getUri());
+
+                    final ErrorPrinter errPrinter = new ErrorPrinter(new URL("http://localhost/abc"), schemes); // reader.getUri().toURL()
+                    errPrinter.print(e.getValidationError());
+                } catch (IOException ie) {
+                    xmlLog.trace("Exception while handling XML parsing error", ie);
+                }
+            }
+            throw e;
         }
-        return AuthenticationContext::empty;
     }
 
     private static SecurityFactory<AuthenticationContext> parseLegacyConfiguration() {

@@ -204,7 +204,7 @@ public class XmlConfigurationTest {
         final byte[] xmlBytes = ("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
             "\n" +
             "<configuration>" +
-            "<authentication-client xmlns=\"urn:elytron:1.0\">\n" +
+            "<authentication-client xmlns=\"urn:elytron:1.0\"> <x/>\n" +
             "    <credential-stores>\n" +
             "        <credential-store name=\"store1\" type=\"" + KeyStoreCredentialStore.KEY_STORE_CREDENTIAL_STORE + "\">\n" +
             "            <protection-parameter-credentials>\n" +
