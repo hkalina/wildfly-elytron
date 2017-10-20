@@ -23,6 +23,8 @@ import java.util.function.Function;
 import org.wildfly.security.auth.AuthenticationException;
 import org.wildfly.security.auth.ReauthenticationException;
 
+import javax.security.sasl.SaslException;
+
 /**
  * A peer identity context.  The peer identity is relevant only to this context.
  *
@@ -54,9 +56,10 @@ public abstract class PeerIdentityContext {
      *
      * @param authenticationConfiguration the authentication configuration to use
      * @return the peer identity
-     * @throws AuthenticationException if an immediate authentication error occurs
+     * @throws AuthenticationException if an immediate authentication error occurs (DEPRECATED - throw SaslException instead)
+     * @throws SaslException if an immediate authentication error occurs
      */
-    public abstract PeerIdentity authenticate(AuthenticationConfiguration authenticationConfiguration) throws AuthenticationException;
+    public abstract PeerIdentity authenticate(AuthenticationConfiguration authenticationConfiguration) throws SaslException, AuthenticationException;
 
     /**
      * Construct a new peer identity.  The given function uses the opaque one-time configuration object to construct the
