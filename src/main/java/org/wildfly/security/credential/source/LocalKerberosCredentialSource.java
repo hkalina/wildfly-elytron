@@ -18,24 +18,20 @@
 
 package org.wildfly.security.credential.source;
 
-import org.ietf.jgss.GSSCredential;
-import org.ietf.jgss.GSSManager;
+import static org.wildfly.security._private.ElytronMessages.log;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.security.spec.AlgorithmParameterSpec;
+
 import org.ietf.jgss.Oid;
 import org.wildfly.security.auth.SupportLevel;
+import org.wildfly.security.auth.util.GSSCredentialSecurityFactory;
 import org.wildfly.security.credential.Credential;
 import org.wildfly.security.credential.GSSKerberosCredential;
 
-import java.io.IOException;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.security.spec.AlgorithmParameterSpec;
-
-import static org.wildfly.security._private.ElytronMessages.log;
-
 /**
- * A credential source which acquires a credential from local kerberos ticket cache.
+ * A credential source which acquires a credential from local kerberos ticket cache (ccache).
  * Provides {@link org.ietf.jgss.GSSCredential} visible in {@code klist} command output etc.
  *
  * Successful obtaining from cache requires set system property {@code javax.security.auth.useSubjectCredsOnly} to {@code false}.
@@ -45,9 +41,13 @@ import static org.wildfly.security._private.ElytronMessages.log;
 public class LocalKerberosCredentialSource implements CredentialSource {
 
     private final Oid[] mechanismOids;
+    private final String ccache;
+    private final boolean debug;
 
-    LocalKerberosCredentialSource(Oid[] mechanismOids) {
-        this.mechanismOids = mechanismOids;
+    LocalKerberosCredentialSource(Builder builder) {
+        this.mechanismOids = builder.mechanismOids;
+        this.ccache = builder.ccache;
+        this.debug = builder.debug;
     }
 
     @Override
@@ -62,25 +62,30 @@ public class LocalKerberosCredentialSource implements CredentialSource {
             return null;
         }
 
+        GSSCredentialSecurityFactory.Builder factory = GSSCredentialSecurityFactory.builder();
+
+        for (Oid oid : mechanismOids) {
+            factory.addMechanismOid(oid);
+        }
+
+        factory.setIsServer(false);
+        factory.setDebug(debug);
+        if (ccache != null) {
+            factory.setDefaultCcache();
+        } else {
+            factory.setCcache(ccache);
+        }
+
+        GSSKerberosCredential credential;
         try {
-            GSSCredential gssCredential = AccessController.doPrivileged((PrivilegedExceptionAction<GSSCredential>) () -> {
-                GSSManager manager = GSSManager.getInstance();
-                return manager.createCredential(null, GSSCredential.DEFAULT_LIFETIME, mechanismOids, GSSCredential.INITIATE_ONLY);
-            });
-
-            log.tracef("Obtained local kerberos credential: %s", gssCredential);
-
-            if (gssCredential == null) return null;
-            return credentialType.cast(new GSSKerberosCredential(gssCredential));
-
-        } catch (PrivilegedActionException e) {
-            try {
-                throw e.getCause();
-            } catch (IOException | RuntimeException | Error e2) {
-                throw e2;
-            } catch (Throwable throwable) {
-                throw new UndeclaredThrowableException(throwable);
+            credential = factory.build().create();
+            if (log.isTraceEnabled()) {
+                log.tracef("Obtained local kerberos credential: %s", credential.getGssCredential());
             }
+            return credentialType.cast(credential);
+        } catch (GeneralSecurityException e) {
+            e.printStackTrace();
+            throw new IOException(e);
         }
     }
 
@@ -99,6 +104,8 @@ public class LocalKerberosCredentialSource implements CredentialSource {
     public static final class Builder {
 
         private Oid[] mechanismOids = null;
+        private String ccache = null;
+        private boolean debug = false;
 
         /**
          * Set array of oid's indicating the mechanisms over which the credential is to be acquired.
@@ -113,12 +120,37 @@ public class LocalKerberosCredentialSource implements CredentialSource {
         }
 
         /**
+         * Set the ccache file URL to obtain the identity.
+         * If not set, default ccache of JDK will be used.
+         *
+         * @param url the URL to ccache file to obtain the identity.
+         * @return {@code this} to allow chaining.
+         */
+        public Builder setCcache(String url) {
+            this.ccache = url;
+
+            return this;
+        }
+
+        /**
+         * Set debug output for GSSCredential obtaining.
+         *
+         * @param debug whether should be debug output enabled.
+         * @return {@code this} to allow chaining.
+         */
+        public Builder setDebug(boolean debug) {
+            this.debug = debug;
+
+            return this;
+        }
+
+        /**
          * Construct the credential source instance.
          *
          * @return the credential source
          */
         public LocalKerberosCredentialSource build() {
-            return new LocalKerberosCredentialSource(mechanismOids);
+            return new LocalKerberosCredentialSource(this);
         }
     }
 }

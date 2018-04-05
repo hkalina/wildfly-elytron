@@ -1094,7 +1094,7 @@ public final class ElytronXmlParser {
                         if ( ! xmlVersion.isAtLeast(Version.VERSION_1_1)) {
                             throw reader.unexpectedElement();
                         }
-                        CredentialSource kerberosCredentialSource = parseLocalKerberos(reader);
+                        CredentialSource kerberosCredentialSource = parseLocalKerberos(reader, xmlVersion);
                         function = andThenOp(function, credentialSource -> credentialSource.with(kerberosCredentialSource));
                         break;
                     }
@@ -2557,9 +2557,12 @@ public final class ElytronXmlParser {
      * @return the clear password characters
      * @throws ConfigXMLParseException if the resource failed to be parsed or the module is not found
      */
-    static CredentialSource parseLocalKerberos(ConfigurationXMLStreamReader reader) throws ConfigXMLParseException {
+    static CredentialSource parseLocalKerberos(ConfigurationXMLStreamReader reader, Version xmlVersion) throws ConfigXMLParseException {
         final int attributeCount = reader.getAttributeCount();
         List<Oid> mechanismOids = new LinkedList<>();
+        String ccache = null;
+        boolean debug = false;
+
         for (int i = 0; i < attributeCount; i ++) {
             checkAttributeNamespace(reader, i);
             if (reader.getAttributeLocalName(i).equals("mechanism-names")) {
@@ -2582,6 +2585,16 @@ public final class ElytronXmlParser {
                         throw xmlLog.xmlGssMechanismOidConversionFailed(reader, oid, e);
                     }
                 }
+            } else if (reader.getAttributeLocalName(i).equals("ccache")) {
+                if (!xmlVersion.isAtLeast(Version.VERSION_1_1)) {
+                    throw reader.unexpectedAttribute(i);
+                }
+                ccache = reader.getAttributeValueResolved(i);
+            } else if (reader.getAttributeLocalName(i).equals("debug")) {
+                if (!xmlVersion.isAtLeast(Version.VERSION_1_1)) {
+                    throw reader.unexpectedAttribute(i);
+                }
+                debug = Boolean.parseBoolean(reader.getAttributeValueResolved(i));
             } else {
                 throw reader.unexpectedAttribute(i);
             }
@@ -2595,7 +2608,11 @@ public final class ElytronXmlParser {
             if (tag == START_ELEMENT) {
                 throw reader.unexpectedElement();
             } else if (tag == END_ELEMENT) {
-                return LocalKerberosCredentialSource.builder().setMechanismOids(mechanismOids.toArray(new Oid[mechanismOids.size()])).build();
+                return LocalKerberosCredentialSource.builder()
+                        .setMechanismOids(mechanismOids.toArray(new Oid[mechanismOids.size()]))
+                        .setCcache(ccache)
+                        .setDebug(debug)
+                        .build();
             } else {
                 throw reader.unexpectedContent();
             }

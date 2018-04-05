@@ -126,6 +126,8 @@ public final class GSSCredentialSecurityFactory implements SecurityFactory<GSSKe
         private File keyTab;
         private boolean isServer;
         private boolean obtainKerberosTicket;
+        private boolean useCcache;
+        private String ccacheUrl;
         private int minimumRemainingLifetime;
         private int requestLifetime;
         private boolean debug;
@@ -173,6 +175,33 @@ public final class GSSCredentialSecurityFactory implements SecurityFactory<GSSKe
         public Builder setObtainKerberosTicket(final boolean obtainKerberosTicket) {
             assertNotBuilt();
             this.obtainKerberosTicket = obtainKerberosTicket;
+
+            return this;
+        }
+
+        /**
+         * Set the ccache file URL to obtain the identity.
+         *
+         * @param url the URL to ccache file to obtain the identity.
+         * @return {@code this} to allow chaining.
+         */
+        public Builder setCcache(String url) {
+            assertNotBuilt();
+            this.useCcache = url != null;
+            this.ccacheUrl = url;
+
+            return this;
+        }
+
+        /**
+         * Set default ccache file to be used to obtain the identity.
+         *
+         * @return {@code this} to allow chaining.
+         */
+        public Builder setDefaultCcache() {
+            assertNotBuilt();
+            this.useCcache = true;
+            this.ccacheUrl = null;
 
             return this;
         }
@@ -392,13 +421,24 @@ public final class GSSCredentialSecurityFactory implements SecurityFactory<GSSKe
 
             if (IS_IBM) {
                 options.put("noAddress", "true");
-                options.put("credsType", (isServer && !obtainKerberosTicket) ? "acceptor" : "both");
+                options.put("credsType", isServer ? (obtainKerberosTicket ? "both" : "acceptor") : "initiator");
                 if (keyTab != null) options.put("useKeytab", keyTab.toURI().toURL().toString());
+                if (useCcache) {
+                    if (ccacheUrl != null) {
+                        options.put("useCcache", ccacheUrl);
+                    } else {
+                        options.put("useDefaultCcache", "true");
+                    }
+                }
             } else {
-                options.put("storeKey", "true");
+                options.put("isInitiator", (isServer && !obtainKerberosTicket) ? "false" : "true");
                 options.put("useKeyTab", "true");
                 if (keyTab != null) options.put("keyTab", keyTab.getAbsolutePath());
-                options.put("isInitiator", (isServer && !obtainKerberosTicket) ? "false" : "true");
+                options.put("storeKey", useCcache ? "false" : "true");
+                if (useCcache) {
+                    options.put("useTicketCache", "true");
+                    if (ccacheUrl != null) options.put("ticketCache", ccacheUrl);
+                }
             }
 
             if (this.options != null) {
@@ -430,6 +470,9 @@ public final class GSSCredentialSecurityFactory implements SecurityFactory<GSSKe
 
     }
 
+    /**
+     * Wrap GSSCredential to prevent disposal
+     */
     private static GSSCredential wrapCredential(final GSSCredential credential) {
         return new GSSCredential() {
 
